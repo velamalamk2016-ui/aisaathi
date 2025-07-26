@@ -1,9 +1,29 @@
 import { db } from "./db";
-import { students, lessons, activities, resources, studentProfiles } from "@shared/schema";
+import { students, lessons, activities, resources, studentProfiles, users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function seedDatabase() {
   try {
-    // Note: Users are now managed by Replit Auth, so we don't seed them manually
+    // Ensure admin user exists with proper teacher profile
+    const adminUser = await db.select().from(users).where(eq(users.username, 'admin'));
+    if (adminUser.length === 0) {
+      await db.insert(users).values({
+        username: 'admin',
+        password: 'admin',
+        name: 'Manoj Velamala',
+        role: 'admin',
+        preferredLanguage: 'hindi',
+        dateOfBirth: '1980-03-15',
+        gender: 'male',
+        phoneNumber: '9876543210',
+        email: 'manoj.velamala@school.edu',
+        address: '123 Teacher Colony, Hyderabad, Telangana',
+        qualification: 'B.Ed, M.Sc Mathematics',
+        experience: 15,
+        subjects: ['Mathematics', 'Physics', 'Computer Science'],
+        joiningDate: '2010-06-01'
+      });
+    }
 
     // Add sample students
     await db.insert(students).values([
