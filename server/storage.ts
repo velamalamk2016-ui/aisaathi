@@ -57,6 +57,8 @@ export interface IStorage {
   
   // Attendance methods
   saveAttendanceRecords(date: string, attendanceRecords: any[]): Promise<any>;
+  getAttendanceForDate(date: string): Promise<any[]>;
+  getAttendanceReportData(fromDate: string, toDate: string): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -309,7 +311,7 @@ export class MemStorage implements IStorage {
 }
 
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
 // Database Storage Implementation
 export class DatabaseStorage implements IStorage {
@@ -557,6 +559,29 @@ export class DatabaseStorage implements IStorage {
       .from(attendanceRecords)
       .innerJoin(studentProfiles, eq(attendanceRecords.studentId, studentProfiles.id))
       .where(eq(attendanceRecords.date, date));
+    
+    return attendanceData;
+  }
+
+  async getAttendanceReportData(fromDate: string, toDate: string): Promise<any[]> {
+    const attendanceData = await db
+      .select({
+        studentId: attendanceRecords.studentId,
+        present: attendanceRecords.present,
+        date: attendanceRecords.date,
+        studentName: studentProfiles.name,
+        class: studentProfiles.class,
+        gender: studentProfiles.gender,
+        specialStatus: studentProfiles.specialStatus
+      })
+      .from(attendanceRecords)
+      .innerJoin(studentProfiles, eq(attendanceRecords.studentId, studentProfiles.id))
+      .where(
+        and(
+          gte(attendanceRecords.date, fromDate),
+          lte(attendanceRecords.date, toDate)
+        )
+      );
     
     return attendanceData;
   }

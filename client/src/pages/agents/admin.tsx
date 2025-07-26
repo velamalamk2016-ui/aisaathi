@@ -12,7 +12,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { UserCog, Users, TrendingUp, FileText, CheckCircle, XCircle, Plus, UserPlus, Trash2 } from "lucide-react";
+import { UserCog, Users, TrendingUp, FileText, CheckCircle, XCircle, Plus, UserPlus, Trash2, Calendar, Download, BarChart3 } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -72,6 +73,12 @@ export default function Admin({ language }: AdminProps) {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendanceChanges, setAttendanceChanges] = useState<Record<number, boolean>>({});
+  const [reportFromDate, setReportFromDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 7); // Default to last 7 days
+    return date.toISOString().split('T')[0];
+  });
+  const [reportToDate, setReportToDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Clear local changes when date changes to load saved attendance for new date
   useEffect(() => {
@@ -120,6 +127,17 @@ export default function Admin({ language }: AdminProps) {
   const { data: progress, isLoading: progressLoading } = useQuery<ProgressRecord[]>({
     queryKey: ['/api/admin/progress'],
     staleTime: 15 * 60 * 1000, // 15 minutes
+  });
+
+  // Attendance report data
+  const { data: reportData, isLoading: reportLoading } = useQuery({
+    queryKey: ['/api/admin/attendance-report', reportFromDate, reportToDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/attendance-report?fromDate=${reportFromDate}&toDate=${reportToDate}`);
+      if (!response.ok) throw new Error('Failed to fetch attendance report');
+      return response.json();
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
   const addStudentMutation = useMutation({
@@ -381,9 +399,10 @@ ${getTranslation("progress-statistics", language)}:
 
       {/* Tabs */}
       <Tabs defaultValue="students" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="students">👥 Student Profiles</TabsTrigger>
           <TabsTrigger value="attendance">{getTranslation("attendance", language)}</TabsTrigger>
+          <TabsTrigger value="reports">📊 Attendance Reports</TabsTrigger>
           <TabsTrigger value="progress">{getTranslation("progress", language)}</TabsTrigger>
         </TabsList>
 
@@ -500,6 +519,278 @@ ${getTranslation("progress-statistics", language)}:
                     )}
                   </Button>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Attendance Analytics Report
+              </CardTitle>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="from-date" className="text-sm">From:</Label>
+                  <Input
+                    id="from-date"
+                    type="date"
+                    value={reportFromDate}
+                    onChange={(e) => setReportFromDate(e.target.value)}
+                    className="w-40"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="to-date" className="text-sm">To:</Label>
+                  <Input
+                    id="to-date"
+                    type="date"
+                    value={reportToDate}
+                    onChange={(e) => setReportToDate(e.target.value)}
+                    className="w-40"
+                  />
+                </div>
+                <Button
+                  onClick={() => {
+                    // Generate and download comprehensive report
+                    const reportText = `
+AI Saathi - Attendance Analytics Report
+Period: ${reportFromDate} to ${reportToDate}
+
+=== SUMMARY STATISTICS ===
+Total Students: ${reportData?.summary?.totalStudents || 0}
+Total School Days: ${reportData?.summary?.totalDays || 0}
+Overall Attendance Rate: ${reportData?.summary?.overallRate || 0}%
+
+=== GENDER-WISE BREAKDOWN ===
+${reportData?.genderWise?.map(item => `${item.name}: ${item.value} students (${item.percentage}%)`).join('\n') || 'No data available'}
+
+=== SPECIAL NEEDS SUPPORT ===
+${reportData?.specialNeeds?.map(item => `${item.name}: ${item.value} students (${item.percentage}%)`).join('\n') || 'No data available'}
+
+=== CLASS-WISE ATTENDANCE ===
+${reportData?.classWise?.map(item => `${item.class}: ${item.attendanceRate}% (${item.present}/${item.total})`).join('\n') || 'No data available'}
+
+=== DAILY TRENDS ===
+${reportData?.dailyTrends?.map(item => `${item.date}: ${item.attendanceRate}% (${item.present}/${item.total})`).join('\n') || 'No data available'}
+
+Generated on: ${new Date().toLocaleString()}
+                    `;
+                    
+                    const blob = new Blob([reportText], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `attendance-report-${reportFromDate}-to-${reportToDate}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    toast({
+                      title: "Report Downloaded",
+                      description: "Attendance analytics report has been downloaded successfully.",
+                    });
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Report
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {reportLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-64 w-full" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                  </div>
+                </div>
+              ) : reportData ? (
+                <div className="space-y-6">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-blue-600">{reportData.summary?.totalStudents || 0}</p>
+                          <p className="text-sm text-gray-600">Total Students</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-green-600">{reportData.summary?.overallRate || 0}%</p>
+                          <p className="text-sm text-gray-600">Overall Rate</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-purple-600">{reportData.summary?.totalDays || 0}</p>
+                          <p className="text-sm text-gray-600">School Days</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-orange-600">{reportData.summary?.avgDaily || 0}%</p>
+                          <p className="text-sm text-gray-600">Daily Average</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Charts Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Gender-wise Attendance */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Gender-wise Attendance</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={reportData.genderWise || []}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percentage }) => `${name}: ${percentage}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {(reportData.genderWise || []).map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28'][index % 3]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    {/* Special Needs Students */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Special Needs Students</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={reportData.specialNeeds || []}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percentage }) => `${name}: ${percentage}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {(reportData.specialNeeds || []).map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={['#FF8042', '#8884D8', '#82CA9D'][index % 3]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    {/* Class-wise Performance */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Class-wise Attendance Rate</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={reportData.classWise || []}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="class" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="attendanceRate" fill="#8884d8" name="Attendance %" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    {/* Daily Trends */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Daily Attendance Trends</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={reportData.dailyTrends || []}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="attendanceRate" fill="#82ca9d" name="Attendance %" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Detailed Table */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Detailed Class Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Class</TableHead>
+                            <TableHead>Total Students</TableHead>
+                            <TableHead>Present</TableHead>
+                            <TableHead>Absent</TableHead>
+                            <TableHead>Attendance Rate</TableHead>
+                            <TableHead>Performance</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(reportData.classWise || []).map((classData) => (
+                            <TableRow key={classData.class}>
+                              <TableCell className="font-medium">{classData.class}</TableCell>
+                              <TableCell>{classData.total}</TableCell>
+                              <TableCell className="text-green-600">{classData.present}</TableCell>
+                              <TableCell className="text-red-600">{classData.absent}</TableCell>
+                              <TableCell>
+                                <Badge variant={classData.attendanceRate >= 90 ? "default" : classData.attendanceRate >= 75 ? "secondary" : "destructive"}>
+                                  {classData.attendanceRate}%
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <span className={`text-sm ${classData.attendanceRate >= 90 ? 'text-green-600' : classData.attendanceRate >= 75 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                  {classData.attendanceRate >= 90 ? 'Excellent' : classData.attendanceRate >= 75 ? 'Good' : 'Needs Attention'}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <Alert>
+                  <AlertDescription>
+                    No attendance data available for the selected date range. Please select a different period.
+                  </AlertDescription>
+                </Alert>
               )}
             </CardContent>
           </Card>

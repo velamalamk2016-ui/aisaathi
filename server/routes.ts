@@ -310,6 +310,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/attendance-report", async (req, res) => {
+    try {
+      const { fromDate, toDate } = req.query;
+      
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: "fromDate and toDate are required" });
+      }
+
+      // Get all student profiles with their details
+      const studentProfiles = await storage.getStudentProfiles();
+      
+      // Get attendance records for the date range
+      const attendanceRecords = await storage.getAttendanceReportData(fromDate.toString(), toDate.toString());
+      
+      // Calculate summary statistics
+      const totalStudents = studentProfiles.length;
+      const uniqueDates = [...new Set(attendanceRecords.map((record: any) => record.date))];
+      const totalDays = uniqueDates.length;
+      
+      // Calculate overall attendance rate
+      const totalPossibleAttendance = totalStudents * totalDays;
+      const totalActualAttendance = attendanceRecords.filter((record: any) => record.present).length;
+      const overallRate = totalPossibleAttendance > 0 ? Math.round((totalActualAttendance / totalPossibleAttendance) * 100) : 0;
+      
+      // Gender-wise analysis
+      const genderCounts: Record<string, number> = {};
+      const genderAttendance: Record<string, number> = {};
+      
+      studentProfiles.forEach((student: any) => {
+        const gender = student.gender || 'Unknown';
+        genderCounts[gender] = (genderCounts[gender] || 0) + 1;
+        genderAttendance[gender] = (genderAttendance[gender] || 0);
+      });
+      
+      attendanceRecords.forEach((record: any) => {
+        const student = studentProfiles.find((s: any) => s.id === record.studentId);
+        if (student && record.present) {
+          const gender = student.gender || 'Unknown';
+          genderAttendance[gender] = (genderAttendance[gender] || 0) + 1;
+        }
+      });
+      
+      const genderWise = Object.keys(genderCounts).map(gender => {
+        const total = genderCounts[gender] * totalDays;
+        const present = genderAttendance[gender] || 0;
+        const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+        return {
+          name: gender,
+          value: genderCounts[gender],
+          percentage: percentage
+        };
+      });
+
+      // Special needs analysis
+      const specialNeedsCount = studentProfiles.filter((s: any) => s.specialStatus && s.specialStatus !== 'None').length;
+      const regularStudentsCount = totalStudents - specialNeedsCount;
+      
+      const specialNeeds = [
+        {
+          name: 'Regular Students',
+          value: regularStudentsCount,
+          percentage: totalStudents > 0 ? Math.round((regularStudentsCount / totalStudents) * 100) : 0
+        },
+        {
+          name: 'Special Needs',
+          value: specialNeedsCount,
+          percentage: totalStudents > 0 ? Math.round((specialNeedsCount / totalStudents) * 100) : 0
+        }
+      ];
+
+      // Class-wise analysis
+      const classCounts: Record<string, number> = {};
+      const classAttendance: Record<string, number> = {};
+      
+      studentProfiles.forEach((student: any) => {
+        const className = student.class;
+        classCounts[className] = (classCounts[className] || 0) + 1;
+        classAttendance[className] = (classAttendance[className] || 0);
+      });
+      
+      attendanceRecords.forEach((record: any) => {
+        const student = studentProfiles.find((s: any) => s.id === record.studentId);
+        if (student && record.present) {
+          const className = student.class;
+          classAttendance[className] = (classAttendance[className] || 0) + 1;
+        }
+      });
+      
+      const classWise = Object.keys(classCounts).map(className => {
+        const total = classCounts[className] * totalDays;
+        const present = classAttendance[className] || 0;
+        const absent = total - present;
+        const attendanceRate = total > 0 ? Math.round((present / total) * 100) : 0;
+        
+        return {
+          class: className,
+          total: classCounts[className],
+          present: Math.round(present / totalDays),
+          absent: Math.round(absent / totalDays),
+          attendanceRate: attendanceRate
+        };
+      });
+
+      // Daily trends
+      const dailyStats: Record<string, any> = {};
+      uniqueDates.forEach(date => {
+        const dayRecords = attendanceRecords.filter((record: any) => record.date === date);
+        const presentCount = dayRecords.filter((record: any) => record.present).length;
+        const totalCount = dayRecords.length;
+        const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+        
+        dailyStats[date] = {
+          date: date,
+          present: presentCount,
+          total: totalCount,
+          attendanceRate: attendanceRate
+        };
+      });
+      
+      const dailyTrends = Object.values(dailyStats).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Calculate average daily attendance
+      const avgDaily = dailyTrends.length > 0 
+        ? Math.round(dailyTrends.reduce((sum: number, day: any) => sum + day.attendanceRate, 0) / dailyTrends.length)
+        : 0;
+
+      const reportData = {
+        summary: {
+          totalStudents,
+          totalDays,
+          overallRate,
+          avgDaily
+        },
+        genderWise,
+        specialNeeds,
+        classWise,
+        dailyTrends
+      };
+
+      res.json(reportData);
+    } catch (error) {
+      console.error("Error generating attendance report:", error);
+      res.status(500).json({ error: "Failed to generate attendance report" });
+    }
+  });
+
   app.get("/api/admin/progress", async (req, res) => {
     try {
       const studentProfiles = await storage.getStudentProfiles();
