@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate the profile data
       const validatedData = teacherProfileSchema.parse(profileData);
       
-      const updatedUser = await storage.updateUser(userId, validatedData);
+      const updatedUser = await storage.updateUser(userId!, validatedData);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Profile updated successfully", user: updatedUser });
     } catch (error) {
       console.error("Error updating profile:", error);
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid profile data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to update profile" });
@@ -129,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = changePasswordSchema.parse(req.body);
       
       // Get current user to verify current password
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUserById(userId!);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -140,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update password
-      const updatedUser = await storage.updateUserPassword(userId, newPassword);
+      const updatedUser = await storage.updateUserPassword(userId!, newPassword);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "Failed to update password" });
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Password changed successfully" });
     } catch (error) {
       console.error("Error changing password:", error);
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid password data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to change password" });
@@ -451,8 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await storage.createAttendanceRecord({
           studentId: record.studentId,
           date: date,
-          present: record.present,
-          submittedAt: new Date()
+          present: record.present
         });
         results.push(result);
       }
@@ -484,13 +483,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const attendanceRecords = await storage.getAllAttendanceRecords().then(records => 
         records.filter(record => {
           const recordDate = new Date(record.date);
-          return recordDate >= fromDate && recordDate <= toDate;
+          const from = new Date(fromDate as string);
+          const to = new Date(toDate as string);
+          return recordDate >= from && recordDate <= to;
         })
       );
       
       // Calculate summary statistics
       const totalStudents = studentProfiles.length;
-      const uniqueDates = [...new Set(attendanceRecords.map((record: any) => record.date))];
+      const uniqueDates = Array.from(new Set(attendanceRecords.map((record: any) => record.date)));
       const totalDays = uniqueDates.length;
       
       // Calculate overall attendance rate
@@ -955,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 function generateCategoryAccessibilityContent(data: any) {
   const { disability, students, contentType } = data;
   const studentCount = students.length;
-  const classes = [...new Set(students.map((s: any) => s.class))].join(", ");
+  const classes = Array.from(new Set(students.map((s: any) => s.class))).join(", ");
   const studentNames = students.map((s: any) => s.name).join(", ");
   
   switch (disability) {
