@@ -126,22 +126,26 @@ export default function AccessibilityPage() {
   });
 
   const generateContentMutation = useMutation({
-    mutationFn: async (student: StudentProfile) => {
-      const response = await apiRequest(`/api/accessibility/content/${student.id}`, "POST", {
-        studentId: student.id,
-        name: student.name,
-        specialStatus: student.specialStatus,
-        class: student.class,
-        languages: student.languages,
-        contentType: contentType
+    mutationFn: async (disability: string) => {
+      const studentsInCategory = groupedStudents[disability] as StudentProfile[];
+      const response = await apiRequest(`/api/accessibility/content/category`, "POST", {
+        disability: disability,
+        students: studentsInCategory.map(s => ({
+          id: s.id,
+          name: s.name,
+          class: s.class,
+          languages: s.languages
+        })),
+        contentType: getContentTypeByAccessibility(disability)
       });
-      return response;
+      return { disability, content: response, students: studentsInCategory };
     },
-    onSuccess: (content: AccessibilityContent) => {
-      setGeneratedContent(content);
+    onSuccess: (result) => {
+      setGeneratedContent(result.content);
+      setSelectedStudent(null); // Clear individual selection
       toast({
         title: "Content Generated Successfully",
-        description: "Specialized accessibility content has been created.",
+        description: `Specialized ${result.disability} content created for ${result.students.length} student${result.students.length !== 1 ? 's' : ''}.`,
       });
     },
     onError: () => {
@@ -167,10 +171,9 @@ export default function AccessibilityPage() {
     }
   };
 
-  const handleGenerateContent = (student: StudentProfile) => {
-    setSelectedStudent(student);
-    setContentType(getContentTypeByAccessibility(student.specialStatus));
-    generateContentMutation.mutate(student);
+  const handleGenerateContent = (disability: string) => {
+    setContentType(getContentTypeByAccessibility(disability));
+    generateContentMutation.mutate(disability);
   };
 
 
@@ -239,9 +242,25 @@ export default function AccessibilityPage() {
                     {studentsArray.length} student{studentsArray.length !== 1 ? 's' : ''} • Content Type: {getContentTypeByAccessibility(disability)}
                   </p>
                 </div>
-                <Badge className={colorClass}>
-                  {studentsArray.length}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge className={colorClass}>
+                    {studentsArray.length}
+                  </Badge>
+                  <Button 
+                    onClick={() => handleGenerateContent(disability)}
+                    disabled={generateContentMutation.isPending}
+                    className="flex items-center gap-2"
+                  >
+                    {generateContentMutation.isPending ? (
+                      "Generating..."
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Generate Content
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {/* Students in this Category */}
@@ -259,25 +278,10 @@ export default function AccessibilityPage() {
                         {student.languages.join(", ")}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent>
                       <div className="text-sm text-gray-600 dark:text-gray-300">
                         Specialized for {disability}
                       </div>
-                      <Button 
-                        onClick={() => handleGenerateContent(student)}
-                        disabled={generateContentMutation.isPending}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        {generateContentMutation.isPending && selectedStudent?.id === student.id ? (
-                          "Generating..."
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Generate Content
-                          </>
-                        )}
-                      </Button>
                     </CardContent>
                   </Card>
                 ))}

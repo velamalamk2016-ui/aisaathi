@@ -598,7 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Accessibility content generation route
+  // Accessibility content generation route for individual student
   app.post("/api/accessibility/content/:id", async (req, res) => {
     try {
       const { studentId, name, specialStatus, class: studentClass, languages, contentType } = req.body;
@@ -616,6 +616,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Accessibility content generation error:", error);
       res.status(500).json({ error: "Failed to generate accessibility content" });
+    }
+  });
+
+  // Accessibility content generation route for category
+  app.post("/api/accessibility/content/category", async (req, res) => {
+    try {
+      const { disability, students, contentType } = req.body;
+      
+      // Generate content for the entire category
+      const content = generateCategoryAccessibilityContent({
+        disability,
+        students,
+        contentType
+      });
+      
+      // Store activity record for the category
+      await storage.createActivity({
+        type: "accessibility",
+        title: `${contentType} for ${disability} Students`,
+        description: `Specialized content for ${students.length} ${disability} students`,
+        agentType: "accessibility"
+      });
+      
+      res.json(content);
+    } catch (error) {
+      console.error("Category accessibility content generation error:", error);
+      res.status(500).json({ error: "Failed to generate category accessibility content" });
     }
   });
 
@@ -690,6 +717,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
+}
+
+// Generate specialized content for entire category
+function generateCategoryAccessibilityContent(data: any) {
+  const { disability, students, contentType } = data;
+  const studentCount = students.length;
+  const classes = [...new Set(students.map((s: any) => s.class))].join(", ");
+  const studentNames = students.map((s: any) => s.name).join(", ");
+  
+  switch (disability) {
+    case "Blind":
+      return {
+        type: "AudioBook",
+        title: `Audio Learning for ${disability} Students`,
+        content: `Welcome to the audio-based learning session designed for ${studentCount} ${disability} students from Class ${classes}. This comprehensive audio lesson uses sound narration, audio cues, and voice-guided navigation to deliver educational content effectively. Students: ${studentNames}`,
+        audioUrl: "/audio/blind-category-lesson.mp3",
+        instructions: "Distribute headphones to all students. Use audio controls and provide verbal instructions. Content includes tactile learning suggestions.",
+        duration: "20-30 minutes",
+        transcription: "Full text transcription available for teachers and assistants",
+        accessibility: "Fully audio-optimized with voice navigation and tactile learning components",
+        students: studentNames,
+        features: ["Voice navigation", "Audio descriptions", "Tactile activities", "Sound-based interaction"]
+      };
+      
+    case "Deaf":
+      return {
+        type: "SignLanguageVideo",
+        title: `Sign Language Lesson for ${disability} Students`,
+        content: `Visual learning content with Indian Sign Language (ISL) translation designed for ${studentCount} ${disability} students from Class ${classes}. This comprehensive visual lesson includes sign language interpretation, visual cues, and text-based instructions. Students: ${studentNames}`,
+        videoUrl: "/videos/deaf-category-lesson.mp4",
+        instructions: "Ensure clear sight lines for all students. Use visual indicators and written instructions. Sign language interpreter available throughout.",
+        duration: "25-35 minutes",
+        signLanguage: "Indian Sign Language (ISL)",
+        accessibility: "Full visual experience with sign language support and text alternatives",
+        students: studentNames,
+        features: ["ISL interpretation", "Visual cues", "Text instructions", "Gesture-based activities"]
+      };
+      
+    case "Dyslexia":
+      return {
+        type: "PracticalVideo",
+        title: `Dyslexia-Friendly Learning for ${disability} Students`,
+        content: `Interactive practical session designed for ${studentCount} students with ${disability} from Class ${classes}. Content uses dyslexia-friendly formatting, visual learning aids, and hands-on activities. Students: ${studentNames}`,
+        videoUrl: "/videos/dyslexia-category-lesson.mp4",
+        instructions: "Use large text displays, provide colored overlays, and encourage hands-on learning. Break content into manageable chunks.",
+        duration: "30-40 minutes",
+        features: ["Large text", "Color coding", "Visual cues", "Simplified language", "Hands-on activities"],
+        accessibility: "Dyslexia-friendly formatting with enhanced visual and kinesthetic support",
+        students: studentNames,
+        activities: ["Color-coded worksheets", "Hands-on experiments", "Visual mapping", "Multi-sensory learning"]
+      };
+      
+    case "Down Syndrome":
+      return {
+        type: "SimplifiedMedia",
+        title: `Simplified Learning for ${disability} Students`,
+        content: `Easy-to-follow content designed for ${studentCount} students with ${disability} from Class ${classes}. Content is presented in simple steps with repetition, visual aids, and patient pacing. Students: ${studentNames}`,
+        videoUrl: "/videos/downsyndrome-category-lesson.mp4",
+        instructions: "Use simple language, provide extra time, include repetition, and use visual aids. Encourage participation at individual pace.",
+        duration: "25-35 minutes",
+        features: ["Simple language", "Repetition", "Visual aids", "Slow pace", "Patient guidance"],
+        accessibility: "Simplified content with enhanced visual support and patient instruction",
+        students: studentNames,
+        activities: ["Step-by-step guides", "Visual schedules", "Repetitive practice", "Encouraging feedback"]
+      };
+      
+    case "ADHD":
+      return {
+        type: "InteractiveContent",
+        title: `Interactive Session for ${disability} Students`,
+        content: `Engaging, bite-sized interactive content designed for ${studentCount} students with ${disability} from Class ${classes}. Content includes movement breaks, focus timers, and interactive elements. Students: ${studentNames}`,
+        videoUrl: "/videos/adhd-category-lesson.mp4",
+        instructions: "Use short segments, include movement breaks, provide focus tools, and maintain high engagement through interactive elements.",
+        duration: "Multiple 5-7 minute segments with breaks",
+        activities: ["Quick quizzes", "Movement breaks", "Focus timers", "Interactive games", "Fidget-friendly tasks"],
+        accessibility: "ADHD-friendly pacing with interactive elements and movement integration",
+        students: studentNames,
+        features: ["Short segments", "Movement breaks", "Interactive elements", "Focus tools", "High engagement"]
+      };
+      
+    case "Autism":
+      return {
+        type: "StructuredContent",
+        title: `Structured Learning for ${disability} Students`,
+        content: `Predictable, well-structured content designed for ${studentCount} students with ${disability} from Class ${classes}. Content follows clear routines, includes visual schedules, and provides structured learning environment. Students: ${studentNames}`,
+        videoUrl: "/videos/autism-category-lesson.mp4",
+        instructions: "Follow clear structure, use visual schedules, maintain routine elements, and provide predictable learning environment.",
+        duration: "35-45 minutes",
+        features: ["Clear structure", "Predictable format", "Visual schedules", "Routine elements", "Structured activities"],
+        accessibility: "Autism-friendly structured approach with visual supports and routine consistency",
+        students: studentNames,
+        activities: ["Visual schedules", "Structured tasks", "Routine-based learning", "Predictable activities"]
+      };
+      
+    default:
+      return {
+        type: "General",
+        title: `Learning Content for ${disability} Students`,
+        content: `General learning content designed for ${studentCount} students from Class ${classes}.`,
+        instructions: "Standard learning approach with inclusive practices.",
+        duration: "25-35 minutes",
+        accessibility: "Standard accessibility features with inclusive design",
+        students: studentNames
+      };
+  }
 }
 
 // Generate specialized content based on specialStatus
