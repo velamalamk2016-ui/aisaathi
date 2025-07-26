@@ -130,15 +130,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async validateLogin(credentials: LoginData): Promise<User | null> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, credentials.username));
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, credentials.username));
 
-    if (user && user.password === credentials.password) {
-      return user;
+      if (user && user.password === credentials.password) {
+        return user;
+      }
+      return null;
+    } catch (error) {
+      console.error("Login validation error:", error);
+      return null;
     }
-    return null;
   }
 
   // Student operations
