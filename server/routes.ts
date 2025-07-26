@@ -334,49 +334,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalActualAttendance = attendanceRecords.filter((record: any) => record.present).length;
       const overallRate = totalPossibleAttendance > 0 ? Math.round((totalActualAttendance / totalPossibleAttendance) * 100) : 0;
       
-      // Gender-wise analysis
-      const genderCounts: Record<string, number> = {};
-      const genderAttendance: Record<string, number> = {};
-      
-      studentProfiles.forEach((student: any) => {
-        const gender = student.gender || 'Unknown';
-        genderCounts[gender] = (genderCounts[gender] || 0) + 1;
-        genderAttendance[gender] = (genderAttendance[gender] || 0);
-      });
-      
-      attendanceRecords.forEach((record: any) => {
-        const student = studentProfiles.find((s: any) => s.id === record.studentId);
-        if (student && record.present) {
-          const gender = student.gender || 'Unknown';
-          genderAttendance[gender] = (genderAttendance[gender] || 0) + 1;
-        }
-      });
-      
-      const genderWise = Object.keys(genderCounts).map(gender => {
-        const total = genderCounts[gender] * totalDays;
-        const present = genderAttendance[gender] || 0;
-        const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
-        return {
-          name: gender,
-          value: genderCounts[gender],
-          percentage: percentage
-        };
-      });
+      // Separate pie charts for boys, girls, and special needs
+      const boyStudents = studentProfiles.filter((student: any) => student.gender === 'Male');
+      const girlStudents = studentProfiles.filter((student: any) => student.gender === 'Female');
+      const specialNeedsStudents = studentProfiles.filter((student: any) => 
+        student.specialStatus && student.specialStatus !== 'None'
+      );
 
-      // Special needs analysis
-      const specialNeedsCount = studentProfiles.filter((s: any) => s.specialStatus && s.specialStatus !== 'None').length;
-      const regularStudentsCount = totalStudents - specialNeedsCount;
+      // Boys present/absent pie chart
+      const boysPresentCount = attendanceRecords.filter((record: any) => {
+        const student = studentProfiles.find((s: any) => s.id === record.studentId);
+        return student && student.gender === 'Male' && record.present;
+      }).length;
+      const boysTotalPossible = boyStudents.length * totalDays;
+      const boysAbsentCount = boysTotalPossible - boysPresentCount;
       
+      const boysPieData = [
+        {
+          name: 'Present',
+          value: boysPresentCount,
+          percentage: boysTotalPossible > 0 ? Math.round((boysPresentCount / boysTotalPossible) * 100) : 0,
+          fill: '#22c55e'
+        },
+        {
+          name: 'Absent',  
+          value: boysAbsentCount,
+          percentage: boysTotalPossible > 0 ? Math.round((boysAbsentCount / boysTotalPossible) * 100) : 0,
+          fill: '#ef4444'
+        }
+      ];
+
+      // Girls present/absent pie chart
+      const girlsPresentCount = attendanceRecords.filter((record: any) => {
+        const student = studentProfiles.find((s: any) => s.id === record.studentId);
+        return student && student.gender === 'Female' && record.present;
+      }).length;
+      const girlsTotalPossible = girlStudents.length * totalDays;
+      const girlsAbsentCount = girlsTotalPossible - girlsPresentCount;
+      
+      const girlsPieData = [
+        {
+          name: 'Present',
+          value: girlsPresentCount,
+          percentage: girlsTotalPossible > 0 ? Math.round((girlsPresentCount / girlsTotalPossible) * 100) : 0,
+          fill: '#22c55e'
+        },
+        {
+          name: 'Absent',
+          value: girlsAbsentCount,
+          percentage: girlsTotalPossible > 0 ? Math.round((girlsAbsentCount / girlsTotalPossible) * 100) : 0,
+          fill: '#ef4444'
+        }
+      ];
+
+      // Special needs present/absent pie chart
+      const specialNeedsPresentCount = attendanceRecords.filter((record: any) => {
+        const student = studentProfiles.find((s: any) => s.id === record.studentId);
+        return student && student.specialStatus && student.specialStatus !== 'None' && record.present;
+      }).length;
+      const specialNeedsTotalPossible = specialNeedsStudents.length * totalDays;
+      const specialNeedsAbsentCount = specialNeedsTotalPossible - specialNeedsPresentCount;
+      
+      const specialNeedsPieData = [
+        {
+          name: 'Present',
+          value: specialNeedsPresentCount,
+          percentage: specialNeedsTotalPossible > 0 ? Math.round((specialNeedsPresentCount / specialNeedsTotalPossible) * 100) : 0,
+          fill: '#22c55e'
+        },
+        {
+          name: 'Absent',
+          value: specialNeedsAbsentCount,
+          percentage: specialNeedsTotalPossible > 0 ? Math.round((specialNeedsAbsentCount / specialNeedsTotalPossible) * 100) : 0,
+          fill: '#ef4444'
+        }
+      ];
+
+      // Overall gender-wise summary for statistics
+      const genderWise = [
+        {
+          gender: 'Male',
+          total: boyStudents.length,
+          present: Math.round(boysPresentCount / (totalDays || 1)),
+          absent: Math.round(boysAbsentCount / (totalDays || 1)),
+          attendanceRate: boysTotalPossible > 0 ? Math.round((boysPresentCount / boysTotalPossible) * 100) : 0
+        },
+        {
+          gender: 'Female', 
+          total: girlStudents.length,
+          present: Math.round(girlsPresentCount / (totalDays || 1)),
+          absent: Math.round(girlsAbsentCount / (totalDays || 1)),
+          attendanceRate: girlsTotalPossible > 0 ? Math.round((girlsPresentCount / girlsTotalPossible) * 100) : 0
+        }
+      ];
+
+      // Special needs summary
       const specialNeeds = [
         {
           name: 'Regular Students',
-          value: regularStudentsCount,
-          percentage: totalStudents > 0 ? Math.round((regularStudentsCount / totalStudents) * 100) : 0
+          value: totalStudents - specialNeedsStudents.length,
+          percentage: totalStudents > 0 ? Math.round(((totalStudents - specialNeedsStudents.length) / totalStudents) * 100) : 0
         },
         {
           name: 'Special Needs',
-          value: specialNeedsCount,
-          percentage: totalStudents > 0 ? Math.round((specialNeedsCount / totalStudents) * 100) : 0
+          value: specialNeedsStudents.length,
+          percentage: totalStudents > 0 ? Math.round((specialNeedsStudents.length / totalStudents) * 100) : 0,
+          attendanceRate: specialNeedsTotalPossible > 0 ? Math.round((specialNeedsPresentCount / specialNeedsTotalPossible) * 100) : 0
         }
       ];
 
@@ -446,7 +509,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         genderWise,
         specialNeeds,
         classWise,
-        dailyTrends
+        dailyTrends,
+        // New pie chart data
+        boysPieData,
+        girlsPieData,
+        specialNeedsPieData
       };
 
       res.json(reportData);

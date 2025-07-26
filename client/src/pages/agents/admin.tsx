@@ -647,64 +647,105 @@ Generated on: ${new Date().toLocaleString()}
                     </Card>
                   </div>
 
-                  {/* Charts Grid */}
+                  {/* Charts Grid - Separate Present/Absent Pie Charts */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Boys Present/Absent Pie Chart */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Boys Attendance</CardTitle>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Present vs Absent Distribution
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={reportData.boysPieData || []}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percentage, value }) => `${name}: ${value} (${percentage}%)`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {(reportData.boysPieData || []).map((entry, index) => (
+                                <Cell key={`boys-${index}`} fill={entry.fill} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value, name) => [`${value} boys`, name]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    {/* Girls Present/Absent Pie Chart */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Girls Attendance</CardTitle>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Present vs Absent Distribution
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={reportData.girlsPieData || []}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percentage, value }) => `${name}: ${value} (${percentage}%)`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {(reportData.girlsPieData || []).map((entry, index) => (
+                                <Cell key={`girls-${index}`} fill={entry.fill} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value, name) => [`${value} girls`, name]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    {/* Special Needs Present/Absent Pie Chart */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Special Needs Attendance</CardTitle>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Present vs Absent Distribution
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={reportData.specialNeedsPieData || []}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percentage, value }) => `${name}: ${value} (${percentage}%)`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {(reportData.specialNeedsPieData || []).map((entry, index) => (
+                                <Cell key={`special-${index}`} fill={entry.fill} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value, name) => [`${value} students`, name]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                  </div>
+
+                  {/* Additional Charts Grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Gender-wise Attendance */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Gender-wise Attendance</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <PieChart>
-                            <Pie
-                              data={reportData.genderWise || []}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              label={({ name, percentage }) => `${name}: ${percentage}%`}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="value"
-                            >
-                              {(reportData.genderWise || []).map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28'][index % 3]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-
-                    {/* Special Needs Students */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Special Needs Students</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <PieChart>
-                            <Pie
-                              data={reportData.specialNeeds || []}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              label={({ name, percentage }) => `${name}: ${percentage}%`}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="value"
-                            >
-                              {(reportData.specialNeeds || []).map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={['#FF8042', '#8884D8', '#82CA9D'][index % 3]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-
                     {/* Class-wise Performance */}
                     <Card>
                       <CardHeader>
