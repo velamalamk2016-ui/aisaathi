@@ -97,17 +97,24 @@ export default function AccessibilityPage() {
     }
   });
 
-  // Filter and sort students who need accessibility support
+  // Filter students who need accessibility support
   const accessibilityStudents = allStudents
-    .filter((student: StudentProfile) => student.specialStatus !== "None")
-    .sort((a: StudentProfile, b: StudentProfile) => {
-      if (sortBy === "specialStatus") {
-        // Group by special status first, then by name
-        if (a.specialStatus !== b.specialStatus) {
-          return a.specialStatus.localeCompare(b.specialStatus);
-        }
-        return a.name.localeCompare(b.name);
-      } else if (sortBy === "class") {
+    .filter((student: StudentProfile) => student.specialStatus !== "None");
+
+  // Group students by disability type
+  const groupedStudents = accessibilityStudents.reduce((groups: Record<string, StudentProfile[]>, student: StudentProfile) => {
+    const disability = student.specialStatus;
+    if (!groups[disability]) {
+      groups[disability] = [];
+    }
+    groups[disability].push(student);
+    return groups;
+  }, {});
+
+  // Sort students within each group
+  Object.keys(groupedStudents).forEach(disability => {
+    groupedStudents[disability].sort((a: StudentProfile, b: StudentProfile) => {
+      if (sortBy === "class") {
         if (a.class !== b.class) {
           return a.class.localeCompare(b.class);
         }
@@ -116,23 +123,21 @@ export default function AccessibilityPage() {
         return a.name.localeCompare(b.name);
       }
     });
+  });
 
   const generateContentMutation = useMutation({
     mutationFn: async (student: StudentProfile) => {
-      const response = await apiRequest(`/api/accessibility/content/${student.id}`, {
-        method: "POST",
-        body: JSON.stringify({
-          studentId: student.id,
-          name: student.name,
-          specialStatus: student.specialStatus,
-          class: student.class,
-          languages: student.languages,
-          contentType: contentType
-        })
+      const response = await apiRequest(`/api/accessibility/content/${student.id}`, "POST", {
+        studentId: student.id,
+        name: student.name,
+        specialStatus: student.specialStatus,
+        class: student.class,
+        languages: student.languages,
+        contentType: contentType
       });
       return response;
     },
-    onSuccess: (content) => {
+    onSuccess: (content: AccessibilityContent) => {
       setGeneratedContent(content);
       toast({
         title: "Content Generated Successfully",
@@ -209,56 +214,93 @@ export default function AccessibilityPage() {
             </Select>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {accessibilityStudents.length} students with accessibility needs
+            {accessibilityStudents.length} students with accessibility needs across {Object.keys(groupedStudents).length} categories
           </p>
         </div>
       </div>
 
-      {/* Students Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {accessibilityStudents.map((student: StudentProfile) => {
-          const IconComponent = accessibilityIcons[student.specialStatus as keyof typeof accessibilityIcons];
-          const colorClass = accessibilityColors[student.specialStatus as keyof typeof accessibilityColors];
+      {/* Students Grouped by Disability Type */}
+      <div className="space-y-8">
+        {Object.entries(groupedStudents).map(([disability, students]) => {
+          const IconComponent = accessibilityIcons[disability as keyof typeof accessibilityIcons];
+          const colorClass = accessibilityColors[disability as keyof typeof accessibilityColors];
+          const studentsArray = students as StudentProfile[];
           
           return (
-            <Card key={student.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <IconComponent className="h-5 w-5 text-gray-600" />
-                    <CardTitle className="text-lg">{student.name}</CardTitle>
-                  </div>
-                  <Badge className={colorClass}>
-                    {student.specialStatus}
-                  </Badge>
+            <div key={disability} className="space-y-4">
+              {/* Disability Category Header */}
+              <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                <IconComponent className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {disability} Students
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {studentsArray.length} student{studentsArray.length !== 1 ? 's' : ''} • Content Type: {getContentTypeByAccessibility(disability)}
+                  </p>
                 </div>
-                <CardDescription>
-                  Class {student.class} • {student.languages.join(", ")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-sm text-gray-600 dark:text-gray-300">
-                  Content Type: {getContentTypeByAccessibility(student.specialStatus)}
-                </div>
-                <Button 
-                  onClick={() => handleGenerateContent(student)}
-                  disabled={generateContentMutation.isPending}
-                  className="w-full"
-                >
-                  {generateContentMutation.isPending && selectedStudent?.id === student.id ? (
-                    "Generating..."
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Generate Content
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+                <Badge className={colorClass}>
+                  {studentsArray.length}
+                </Badge>
+              </div>
+
+              {/* Students in this Category */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pl-4">
+                {studentsArray.map((student: StudentProfile) => (
+                  <Card key={student.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{student.name}</CardTitle>
+                        <Badge variant="outline" className="text-xs">
+                          Class {student.class}
+                        </Badge>
+                      </div>
+                      <CardDescription>
+                        {student.languages.join(", ")}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        Specialized for {disability}
+                      </div>
+                      <Button 
+                        onClick={() => handleGenerateContent(student)}
+                        disabled={generateContentMutation.isPending}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        {generateContentMutation.isPending && selectedStudent?.id === student.id ? (
+                          "Generating..."
+                        ) : (
+                          <>
+                            <Play className="h-4 w-4 mr-2" />
+                            Generate Content
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           );
         })}
       </div>
+
+      {/* Empty State */}
+      {Object.keys(groupedStudents).length === 0 && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No Students with Special Needs
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Students with accessibility needs will appear here grouped by disability type.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
 
 
