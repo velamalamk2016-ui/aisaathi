@@ -54,7 +54,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.post('/api/auth/login', async (req, res) => {
     try {
-      const loginData = loginSchema.parse(req.body);
+      const credentials = loginSchema.parse(req.body);
+      
+      // Verify reCAPTCHA
+      const { captchaToken, ...loginData } = credentials;
+      if (captchaToken) {
+        const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `secret=${process.env.RECAPTCHA_SECRET_KEY || "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe"}&response=${captchaToken}`
+        });
+        
+        const recaptchaResult = await recaptchaResponse.json();
+        
+        if (!recaptchaResult.success) {
+          return res.status(400).json({ message: "CAPTCHA verification failed" });
+        }
+      }
+      
       const user = await storage.validateLogin(loginData);
       
       if (!user) {

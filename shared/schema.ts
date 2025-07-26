@@ -161,6 +161,8 @@ export type InsertUser = typeof users.$inferInsert;
 export const loginSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+}).extend({
+  captchaToken: z.string().optional(),
 });
 
 export const teacherProfileSchema = createInsertSchema(users).omit({

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
+import ReCAPTCHA from "react-google-recaptcha";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -19,12 +20,14 @@ interface LoginProps {
 export function Login({ language }: LoginProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       username: "admin",
       password: "admin",
+      captchaToken: "",
     },
   });
 
@@ -60,7 +63,16 @@ export function Login({ language }: LoginProps) {
   });
 
   const onSubmit = (data: LoginData) => {
-    loginMutation.mutate(data);
+    const captchaToken = recaptchaRef.current?.getValue();
+    
+    loginMutation.mutate({
+      ...data,
+      captchaToken: captchaToken || "",
+    });
+  };
+
+  const onCaptchaChange = (token: string | null) => {
+    form.setValue("captchaToken", token || "");
   };
 
   return (
@@ -128,6 +140,16 @@ export function Login({ language }: LoginProps) {
                     </FormItem>
                   )}
                 />
+
+                {/* reCAPTCHA */}
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                    onChange={onCaptchaChange}
+                    theme="light"
+                  />
+                </div>
 
                 <Button
                   type="submit"
