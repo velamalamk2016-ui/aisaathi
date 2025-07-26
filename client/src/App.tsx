@@ -8,9 +8,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { offlineStorage } from "@/lib/offline-storage";
 import { type Language } from "@shared/schema";
-import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
-import { Login } from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import TeachingAids from "@/pages/agents/teaching-aids";
 import LessonPlan from "@/pages/agents/lesson-plan";
@@ -24,7 +22,6 @@ import { TeacherProfile } from "@/pages/teacher-profile";
 
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
   const [language, setLanguage] = useState<Language>("hindi");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -53,23 +50,6 @@ function Router() {
     offlineStorage.saveLanguage(newLanguage);
   };
 
-  // Show landing page if loading or not authenticated
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">AI Saathi</h2>
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Login language={language} />;
-  }
-
-  // Show authenticated app
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header 
