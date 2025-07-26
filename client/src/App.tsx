@@ -8,7 +8,9 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { offlineStorage } from "@/lib/offline-storage";
 import { type Language } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
+import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import TeachingAids from "@/pages/agents/teaching-aids";
 import LessonPlan from "@/pages/agents/lesson-plan";
@@ -21,6 +23,7 @@ import Evaluation from "@/pages/agents/evaluation";
 
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [language, setLanguage] = useState<Language>("hindi");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -51,27 +54,32 @@ function Router() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Header 
-        language={language} 
-        onLanguageChange={handleLanguageChange}
-        isOnline={isOnline}
-      />
-      
       <Switch>
-        <Route path="/" component={() => <Dashboard language={language} />} />
-        <Route path="/agents/teaching-aids" component={() => <TeachingAids language={language} />} />
-        <Route path="/agents/lesson-plan" component={() => <LessonPlan language={language} />} />
-        <Route path="/agents/assessment" component={() => <Assessment language={language} />} />
-        <Route path="/agents/multilingual" component={() => <Multilingual language={language} />} />
-        <Route path="/agents/admin" component={() => <Admin language={language} />} />
-        <Route path="/agents/storyteller" component={() => <Storyteller language={language} />} />
-        <Route path="/agents/accessibility" component={Accessibility} />
-        <Route path="/agents/evaluation" component={() => <Evaluation language={language} />} />
-
+        {isLoading || !isAuthenticated ? (
+          <Route path="/" component={() => <Landing language={language} />} />
+        ) : (
+          <>
+            <Header 
+              language={language} 
+              onLanguageChange={handleLanguageChange}
+              isOnline={isOnline}
+            />
+            
+            <Route path="/" component={() => <Dashboard language={language} />} />
+            <Route path="/agents/teaching-aids" component={() => <TeachingAids language={language} />} />
+            <Route path="/agents/lesson-plan" component={() => <LessonPlan language={language} />} />
+            <Route path="/agents/assessment" component={() => <Assessment language={language} />} />
+            <Route path="/agents/multilingual" component={() => <Multilingual language={language} />} />
+            <Route path="/agents/admin" component={() => <Admin language={language} />} />
+            <Route path="/agents/storyteller" component={() => <Storyteller language={language} />} />
+            <Route path="/agents/accessibility" component={Accessibility} />
+            <Route path="/agents/evaluation" component={() => <Evaluation language={language} />} />
+            
+            <Footer language={language} onLanguageChange={handleLanguageChange} />
+          </>
+        )}
         <Route component={() => <NotFound language={language} />} />
       </Switch>
-      
-      <Footer language={language} onLanguageChange={handleLanguageChange} />
     </div>
   );
 }

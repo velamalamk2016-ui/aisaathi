@@ -1,6 +1,6 @@
 import { 
   users, students, lessons, assessments, activities, resources, accessibilityStudents, studentProfiles, attendanceRecords,
-  type User, type InsertUser, type Student, type InsertStudent,
+  type User, type UpsertUser, type InsertUser, type Student, type InsertStudent,
   type Lesson, type InsertLesson, type Assessment, type InsertAssessment,
   type Activity, type InsertActivity, type Resource, type InsertResource,
   type AccessibilityStudent, type InsertAccessibilityStudent,
@@ -10,8 +10,9 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
+  // User methods (for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
@@ -315,13 +316,30 @@ import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
 // Database Storage Implementation
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  // User operations for Replit Auth
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    // This method is kept for compatibility but not used in Replit Auth
+    return undefined;
     return user || undefined;
   }
 

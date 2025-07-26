@@ -3,14 +3,7 @@ import { users, students, lessons, activities, resources, studentProfiles } from
 
 export async function seedDatabase() {
   try {
-    // Add sample user
-    await db.insert(users).values({
-      name: "priya-sharma", // Use key for transliteration
-      username: "priya_sharma",
-      password: "teacher123",
-      role: "teacher",
-      preferredLanguage: "hindi"
-    }).onConflictDoNothing();
+    // Note: Users are now managed by Replit Auth, so we don't seed them manually
 
     // Add sample students
     await db.insert(students).values([
