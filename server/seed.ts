@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, students, lessons, activities, resources, studentProfiles } from "@shared/schema";
+import { students, lessons, activities, resources, studentProfiles } from "@shared/schema";
 
 export async function seedDatabase() {
   try {

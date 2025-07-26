@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { spawn } from "child_process";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { isAuthenticated } from "./simple-auth";
+import session from "express-session";
 import { 
   generateTeachingAid, 
   generateLessonPlan, 
@@ -16,23 +17,65 @@ import {
   type StoryRequest
 } from "./services/openai";
 import { geminiBridge } from "./services/gemini-bridge";
-import { insertActivitySchema, insertStudentSchema, insertLessonSchema, insertAssessmentSchema, insertAccessibilityStudentSchema, insertStudentProfileSchema, updateStudentProfileSchema } from "@shared/schema";
+import { loginSchema, insertActivitySchema, insertStudentSchema, insertLessonSchema, insertAssessmentSchema, insertAccessibilityStudentSchema, insertStudentProfileSchema, updateStudentProfileSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Extend Express Session to include userId
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'ai-saathi-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  }));
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/login', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const loginData = loginSchema.parse(req.body);
+      const user = await storage.validateLogin(loginData);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ message: "Login successful", user: { id: user.id, username: user.username, name: user.name, role: user.role } });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(400).json({ message: "Invalid login data" });
+    }
+  });
+
+  app.get('/api/auth/user', isAuthenticated, async (req, res) => {
+    try {
+      res.json(req.user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: "Logged out successfully" });
+    });
   });
   
   // Dashboard routes

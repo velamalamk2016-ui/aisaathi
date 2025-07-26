@@ -10,7 +10,7 @@ import { offlineStorage } from "@/lib/offline-storage";
 import { type Language } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
-import Landing from "@/pages/landing";
+import { Login } from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import TeachingAids from "@/pages/agents/teaching-aids";
 import LessonPlan from "@/pages/agents/lesson-plan";
@@ -65,7 +65,7 @@ function Router() {
   }
 
   if (!isAuthenticated) {
-    return <Landing language={language} />;
+    return <Login language={language} />;
   }
 
   // Show authenticated app

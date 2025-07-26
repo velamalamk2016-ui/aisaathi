@@ -83,7 +83,15 @@ export function Header({ language, onLanguageChange, isOnline }: HeaderProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem 
-                  onClick={() => window.location.href = '/api/logout'}
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/auth/logout', { method: 'POST' });
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('Logout error:', error);
+                      window.location.reload();
+                    }
+                  }}
                   className="text-red-600 hover:text-red-700"
                 >
                   {getTranslation('logout', language) || 'Logout'}
