@@ -30,12 +30,18 @@ export function Login({ language }: LoginProps) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
-      const response = await apiRequest("/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      return response;
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Login failed");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({

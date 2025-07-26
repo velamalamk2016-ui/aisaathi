@@ -90,8 +90,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/dashboard/activities", async (req, res) => {
     try {
-      const activities = await storage.getRecentActivities(10);
-      res.json(activities);
+      const activities = await storage.getAllActivities();
+      res.json(activities.slice(0, 10)); // Get first 10 activities
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch activities" });
     }
@@ -99,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/dashboard/resources", async (req, res) => {
     try {
-      const resources = await storage.getAvailableResources();
+      const resources = await storage.getAllResources();
       res.json(resources);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch resources" });
@@ -109,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Student routes
   app.get("/api/students", async (req, res) => {
     try {
-      const students = await storage.getStudents();
+      const students = await storage.getAllStudents();
       res.json(students);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch students" });
@@ -129,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Lesson routes
   app.get("/api/lessons", async (req, res) => {
     try {
-      const lessons = await storage.getLessons();
+      const lessons = await storage.getAllLessons();
       res.json(lessons);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch lessons" });
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Assessment routes
   app.get("/api/assessments", async (req, res) => {
     try {
-      const assessments = await storage.getAssessments();
+      const assessments = await storage.getAllAssessments();
       res.json(assessments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch assessments" });
@@ -317,10 +317,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedDate = date ? date.toString() : new Date().toISOString().split('T')[0];
       
       // Get all student profiles
-      const studentProfiles = await storage.getStudentProfiles();
+      const studentProfiles = await storage.getAllStudentProfiles();
       
       // Get attendance records for the selected date
-      const attendanceRecords = await storage.getAttendanceForDate(selectedDate);
+      const attendanceRecords = await storage.getAllAttendanceRecords().then(records => 
+        records.filter(record => record.date === selectedDate)
+      );
       
       // Create attendance map for quick lookup
       const attendanceMap = new Map();
@@ -354,7 +356,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Save attendance records to storage
-      const result = await storage.saveAttendanceRecords(date, attendanceRecords);
+      // Save individual attendance records
+      const results = [];
+      for (const record of attendanceRecords) {
+        const result = await storage.createAttendanceRecord({
+          studentId: record.studentId,
+          date: date,
+          present: record.present,
+          submittedAt: new Date()
+        });
+        results.push(result);
+      }
 
       res.json({ 
         success: true, 
@@ -377,10 +389,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get all student profiles with their details
-      const studentProfiles = await storage.getStudentProfiles();
+      const studentProfiles = await storage.getAllStudentProfiles();
       
       // Get attendance records for the date range
-      const attendanceRecords = await storage.getAttendanceReportData(fromDate.toString(), toDate.toString());
+      const attendanceRecords = await storage.getAllAttendanceRecords().then(records => 
+        records.filter(record => {
+          const recordDate = new Date(record.date);
+          return recordDate >= fromDate && recordDate <= toDate;
+        })
+      );
       
       // Calculate summary statistics
       const totalStudents = studentProfiles.length;
@@ -583,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/progress", async (req, res) => {
     try {
-      const studentProfiles = await storage.getStudentProfiles();
+      const studentProfiles = await storage.getAllStudentProfiles();
       const progress = studentProfiles.map(student => {
         // Extract grade number from class string (e.g., "Class 5" -> 5)
         const gradeNumber = parseInt(student.class.replace(/\D/g, '')) || 1;
@@ -607,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Accessibility routes
   app.get("/api/accessibility/students", async (req, res) => {
     try {
-      const students = await storage.getAccessibilityStudents();
+      const students = await storage.getAllAccessibilityStudents();
       res.json(students);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch accessibility students" });
@@ -627,7 +644,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/accessibility/content/:studentId", async (req, res) => {
     try {
       const studentId = parseInt(req.params.studentId);
-      const student = await storage.getAccessibilityStudent(studentId);
+      const students = await storage.getAllAccessibilityStudents();
+      const student = students.find(s => s.id === studentId);
       
       if (!student) {
         return res.status(404).json({ error: "Student not found" });
@@ -653,7 +671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Student Profile routes
   app.get("/api/student-profiles", async (req, res) => {
     try {
-      const profiles = await storage.getStudentProfiles();
+      const profiles = await storage.getAllStudentProfiles();
       res.json(profiles);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch student profiles" });
