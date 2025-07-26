@@ -52,34 +52,45 @@ function Router() {
     offlineStorage.saveLanguage(newLanguage);
   };
 
+  // Show landing page if loading or not authenticated
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">AI Saathi</h2>
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Landing language={language} />;
+  }
+
+  // Show authenticated app
   return (
     <div className="min-h-screen bg-neutral-50">
+      <Header 
+        language={language} 
+        onLanguageChange={handleLanguageChange}
+        isOnline={isOnline}
+      />
+      
       <Switch>
-        {isLoading || !isAuthenticated ? (
-          <Route path="/" component={() => <Landing language={language} />} />
-        ) : (
-          <>
-            <Header 
-              language={language} 
-              onLanguageChange={handleLanguageChange}
-              isOnline={isOnline}
-            />
-            
-            <Route path="/" component={() => <Dashboard language={language} />} />
-            <Route path="/agents/teaching-aids" component={() => <TeachingAids language={language} />} />
-            <Route path="/agents/lesson-plan" component={() => <LessonPlan language={language} />} />
-            <Route path="/agents/assessment" component={() => <Assessment language={language} />} />
-            <Route path="/agents/multilingual" component={() => <Multilingual language={language} />} />
-            <Route path="/agents/admin" component={() => <Admin language={language} />} />
-            <Route path="/agents/storyteller" component={() => <Storyteller language={language} />} />
-            <Route path="/agents/accessibility" component={Accessibility} />
-            <Route path="/agents/evaluation" component={() => <Evaluation language={language} />} />
-            
-            <Footer language={language} onLanguageChange={handleLanguageChange} />
-          </>
-        )}
+        <Route path="/" component={() => <Dashboard language={language} />} />
+        <Route path="/agents/teaching-aids" component={() => <TeachingAids language={language} />} />
+        <Route path="/agents/lesson-plan" component={() => <LessonPlan language={language} />} />
+        <Route path="/agents/assessment" component={() => <Assessment language={language} />} />
+        <Route path="/agents/multilingual" component={() => <Multilingual language={language} />} />
+        <Route path="/agents/admin" component={() => <Admin language={language} />} />
+        <Route path="/agents/storyteller" component={() => <Storyteller language={language} />} />
+        <Route path="/agents/accessibility" component={Accessibility} />
+        <Route path="/agents/evaluation" component={() => <Evaluation language={language} />} />
         <Route component={() => <NotFound language={language} />} />
       </Switch>
+      
+      <Footer language={language} onLanguageChange={handleLanguageChange} />
     </div>
   );
 }

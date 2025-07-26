@@ -72,14 +72,24 @@ export function Header({ language, onLanguageChange, isOnline }: HeaderProps) {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            
-            {/* User Profile */}
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-sm text-gray-700 hidden sm:block">{getTranslation('priya-sharma', language)}</span>
-            </div>
+
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-2">
+                  <User className="h-4 w-4" />
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem 
+                  onClick={() => window.location.href = '/api/logout'}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  {getTranslation('logout', language) || 'Logout'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
