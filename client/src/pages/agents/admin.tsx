@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,11 @@ export default function Admin({ language }: AdminProps) {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendanceChanges, setAttendanceChanges] = useState<Record<number, boolean>>({});
+
+  // Clear local changes when date changes to load saved attendance for new date
+  useEffect(() => {
+    setAttendanceChanges({});
+  }, [attendanceDate]);
 
   const form = useForm<AddStudentForm>({
     resolver: zodResolver(addStudentSchema),
@@ -213,7 +218,7 @@ export default function Admin({ language }: AdminProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/attendance'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
-      setAttendanceChanges({});
+      setAttendanceChanges({}); // Clear local changes after successful save
       toast({
         title: "Success",
         description: `Attendance for ${attendanceDate} saved successfully`,
@@ -420,9 +425,18 @@ ${getTranslation("progress-statistics", language)}:
                   </TableHeader>
                   <TableBody>
                     {students.map((student: any) => {
+                      // Check if there's a saved attendance record for this student on the selected date
+                      const savedAttendanceRecord = attendance?.find(record => record.studentId === student.id);
+                      
+                      // Determine the current status:
+                      // 1. If user made local changes, use those
+                      // 2. If there's saved data for this date, use that
+                      // 3. Otherwise default to present
                       const isPresent = attendanceChanges[student.id] !== undefined 
                         ? attendanceChanges[student.id] 
-                        : true; // Default to present
+                        : savedAttendanceRecord 
+                        ? savedAttendanceRecord.present 
+                        : true;
                       
                       return (
                         <TableRow key={student.id}>
