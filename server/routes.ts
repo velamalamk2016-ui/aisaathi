@@ -17,7 +17,18 @@ import {
   type StoryRequest
 } from "./services/openai";
 import { geminiBridge } from "./services/gemini-bridge";
-import { loginSchema, insertActivitySchema, insertStudentSchema, insertLessonSchema, insertAssessmentSchema, insertAccessibilityStudentSchema, insertStudentProfileSchema, updateStudentProfileSchema } from "@shared/schema";
+import { 
+  loginSchema, 
+  insertActivitySchema, 
+  insertStudentSchema, 
+  insertLessonSchema, 
+  insertAssessmentSchema, 
+  insertAccessibilityStudentSchema, 
+  insertStudentProfileSchema, 
+  updateStudentProfileSchema,
+  teacherProfileSchema,
+  changePasswordSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 // Extend Express Session to include userId
@@ -64,6 +75,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Teacher profile routes
+  app.put('/api/teacher/profile', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const profileData = req.body;
+      
+      // Validate the profile data
+      const validatedData = teacherProfileSchema.parse(profileData);
+      
+      const updatedUser = await storage.updateUser(userId, validatedData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "Profile updated successfully", user: updatedUser });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid profile data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.post('/api/teacher/change-password', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const { currentPassword, newPassword } = req.body;
+      
+      // Validate the password data
+      const validatedData = changePasswordSchema.parse(req.body);
+      
+      // Get current user to verify current password
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify current password (simple comparison for now)
+      if (user.password !== currentPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Update password
+      const updatedUser = await storage.updateUserPassword(userId, newPassword);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update password" });
+      }
+      
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid password data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to change password" });
     }
   });
 

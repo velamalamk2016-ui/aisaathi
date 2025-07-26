@@ -7,7 +7,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Brain, Globe, Wifi, WifiOff, User, ChevronDown } from "lucide-react";
+import { Brain, Globe, Wifi, WifiOff, User, ChevronDown, LogOut } from "lucide-react";
 import { LANGUAGES, getTranslation, type Language } from "@/lib/language-utils";
 import { offlineStorage } from "@/lib/offline-storage";
 
@@ -82,6 +82,10 @@ export function Header({ language, onLanguageChange, isOnline }: HeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => window.location.href = '/teacher-profile'}>
+                  <User className="mr-2 h-4 w-4" />
+                  {getTranslation('profile', language) || 'Profile'}
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={async () => {
                     try {
@@ -94,6 +98,7 @@ export function Header({ language, onLanguageChange, isOnline }: HeaderProps) {
                   }}
                   className="text-red-600 hover:text-red-700"
                 >
+                  <LogOut className="mr-2 h-4 w-4" />
                   {getTranslation('logout', language) || 'Logout'}
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -11,6 +11,16 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 255 }).notNull(),
   role: varchar("role", { length: 50 }).default("teacher"),
   preferredLanguage: varchar("preferred_language", { length: 50 }).default("hindi"),
+  // Teacher profile fields
+  dateOfBirth: varchar("date_of_birth", { length: 20 }),
+  gender: varchar("gender", { length: 10 }),
+  phoneNumber: varchar("phone_number", { length: 15 }),
+  email: varchar("email", { length: 100 }),
+  address: text("address"),
+  qualification: varchar("qualification", { length: 100 }),
+  experience: integer("experience"), // years of experience
+  subjects: text("subjects").array(), // subjects taught
+  joiningDate: varchar("joining_date", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -153,7 +163,31 @@ export const loginSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+export const teacherProfileSchema = createInsertSchema(users).omit({
+  id: true,
+  username: true,
+  password: true,
+  role: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  dateOfBirth: z.string().optional(),
+  joiningDate: z.string().optional(),
+  subjects: z.array(z.string()).optional(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(4, "New password must be at least 4 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 export type LoginData = z.infer<typeof loginSchema>;
+export type TeacherProfileData = z.infer<typeof teacherProfileSchema>;
+export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 export type Student = typeof students.$inferSelect;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type Lesson = typeof lessons.$inferSelect;

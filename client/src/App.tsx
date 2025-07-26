@@ -20,6 +20,7 @@ import Admin from "@/pages/agents/admin";
 import Storyteller from "@/pages/agents/storyteller";
 import Accessibility from "@/pages/agents/accessibility";
 import Evaluation from "@/pages/agents/evaluation";
+import { TeacherProfile } from "@/pages/teacher-profile";
 
 
 function Router() {
@@ -87,6 +88,7 @@ function Router() {
         <Route path="/agents/storyteller" component={() => <Storyteller language={language} />} />
         <Route path="/agents/accessibility" component={Accessibility} />
         <Route path="/agents/evaluation" component={() => <Evaluation language={language} />} />
+        <Route path="/teacher-profile" component={() => <TeacherProfile language={language} />} />
         <Route component={() => <NotFound language={language} />} />
       </Switch>
       
