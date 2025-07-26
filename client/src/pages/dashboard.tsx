@@ -2,14 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { AgentCards } from "@/components/dashboard/agent-cards";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { ResourceSuggestions } from "@/components/dashboard/resource-suggestions";
-import { LanguageShowcase } from "@/components/language-showcase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { offlineStorage } from "@/lib/offline-storage";
 import { getTranslation } from "@/lib/language-utils";
-import type { DashboardStats, Activity, Resource, Language } from "@shared/schema";
+import type { DashboardStats, Activity, Language } from "@shared/schema";
 
 interface DashboardProps {
   language: Language;
@@ -29,7 +27,8 @@ export default function Dashboard({ language }: DashboardProps) {
     },
     placeholderData: () => {
       // Use cached data if available
-      return offlineStorage.getDashboardStats();
+      const cached = offlineStorage.getDashboardStats();
+      return cached || undefined;
     },
   });
 
@@ -46,28 +45,12 @@ export default function Dashboard({ language }: DashboardProps) {
     },
     placeholderData: () => {
       // Use cached data if available
-      return offlineStorage.getActivities();
+      const cached = offlineStorage.getActivities();
+      return cached || undefined;
     },
   });
 
-  const { data: resources, isLoading: resourcesLoading, error: resourcesError } = useQuery<Resource[]>({
-    queryKey: ['/api/dashboard/resources'],
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    retry: 1,
-    select: (data) => {
-      // Cache for offline use
-      if (data) {
-        offlineStorage.saveResources(data);
-      }
-      return data;
-    },
-    placeholderData: () => {
-      // Use cached data if available
-      return offlineStorage.getResources();
-    },
-  });
-
-  if (statsError || activitiesError || resourcesError) {
+  if (statsError || activitiesError) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Alert>
@@ -126,23 +109,12 @@ export default function Dashboard({ language }: DashboardProps) {
         {/* Agent Cards */}
         <AgentCards language={language} />
 
-        {/* Language Support Section */}
-        <div className="mb-8">
-          <LanguageShowcase language={language} />
-        </div>
-
-        {/* Activity Feed and Resources */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Activity Feed */}
+        <div className="max-w-4xl mx-auto">
           {activitiesLoading ? (
             <Skeleton className="h-96 w-full" />
           ) : (
             <ActivityFeed activities={activities || []} language={language} />
-          )}
-          
-          {resourcesLoading ? (
-            <Skeleton className="h-96 w-full" />
-          ) : (
-            <ResourceSuggestions resources={resources || []} language={language} />
           )}
         </div>
       </main>
