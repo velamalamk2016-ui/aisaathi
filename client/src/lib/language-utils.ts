@@ -2887,7 +2887,7 @@ export function getTranslation(key: string, language: Language): string {
   const translations = TRANSLATIONS[key as keyof typeof TRANSLATIONS];
   if (!translations) return key;
   
-  return translations[language] || translations.english || key;
+  return (translations as any)[language] || (translations as any).english || key;
 }
 
 export function getDynamicTranslation(text: string, language: Language): string {

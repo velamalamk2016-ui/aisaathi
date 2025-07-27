@@ -1,0 +1,175 @@
+[
+  {
+    "workflow_id": "complete_lesson_creation_20250727_014435",
+    "status": "failed",
+    "execution_time": 0.000223,
+    "final_output": null,
+    "tasks": [
+      {
+        "id": "lesson_plan",
+        "type": "education",
+        "agent": "lesson_plan",
+        "input_data": {
+          "subject": "Mathematics",
+          "topic": "Fractions",
+          "grade": "5",
+          "duration": 45,
+          "language": "english"
+        },
+        "dependencies": [],
+        "status": "failed",
+        "result": null,
+        "error": "3 validation errors for LessonPlanRequest\ngrades\n  Field required [type=missing, input_value={'subject': 'Mathematics'..., 'language': 'english'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ntimeLimit\n  Field required [type=missing, input_value={'subject': 'Mathematics'..., 'language': 'english'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nmaterials\n  Field required [type=missing, input_value={'subject': 'Mathematics'..., 'language': 'english'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "created_at": "2025-07-27T01:44:35.021530",
+        "completed_at": "2025-07-27T01:44:35.021665"
+      },
+      {
+        "id": "teaching_materials",
+        "type": "education",
+        "agent": "teaching_aids",
+        "input_data": {
+          "subject": "Mathematics",
+          "topic": "Fractions",
+          "grade": "5",
+          "language": "english",
+          "aid_type": "worksheet"
+        },
+        "dependencies": [
+          "lesson_plan"
+        ],
+        "status": "pending",
+        "result": null,
+        "error": null,
+        "created_at": "2025-07-27T01:44:35.021539",
+        "completed_at": null
+      },
+      {
+        "id": "assessment",
+        "type": "education",
+        "agent": "assessment",
+        "input_data": {
+          "subject": "Mathematics",
+          "topic": "Fractions",
+          "grade": "5",
+          "language": "english",
+          "assessment_type": "quiz"
+        },
+        "dependencies": [
+          "lesson_plan"
+        ],
+        "status": "pending",
+        "result": null,
+        "error": null,
+        "created_at": "2025-07-27T01:44:35.021542",
+        "completed_at": null
+      }
+    ]
+  },
+  {
+    "workflow_id": "content_localization_20250727_014435",
+    "status": "failed",
+    "execution_time": 0.000118,
+    "final_output": null,
+    "tasks": [
+      {
+        "id": "story_creation",
+        "type": "education",
+        "agent": "storyteller",
+        "input_data": {
+          "topic": "Environmental Conservation",
+          "grade": "4",
+          "language": "english",
+          "moral": "Protect our environment"
+        },
+        "dependencies": [],
+        "status": "failed",
+        "result": null,
+        "error": "3 validation errors for StoryRequest\ntheme\n  Field required [type=missing, input_value={'topic': 'Environmental ...rotect our environment'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ngrades\n  Field required [type=missing, input_value={'topic': 'Environmental ...rotect our environment'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ncharacters\n  Field required [type=missing, input_value={'topic': 'Environmental ...rotect our environment'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "created_at": "2025-07-27T01:44:35.021803",
+        "completed_at": "2025-07-27T01:44:35.021863"
+      },
+      {
+        "id": "translate_to_hindi",
+        "type": "translation",
+        "agent": "translation",
+        "input_data": {
+          "text": "Story content will be populated from story_creation",
+          "source_language": "english",
+          "target_language": "hindi"
+        },
+        "dependencies": [
+          "story_creation"
+        ],
+        "status": "pending",
+        "result": null,
+        "error": null,
+        "created_at": "2025-07-27T01:44:35.021807",
+        "completed_at": null
+      },
+      {
+        "id": "translate_to_tamil",
+        "type": "translation",
+        "agent": "translation",
+        "input_data": {
+          "text": "Story content will be populated from story_creation",
+          "source_language": "english",
+          "target_language": "tamil"
+        },
+        "dependencies": [
+          "story_creation"
+        ],
+        "status": "pending",
+        "result": null,
+        "error": null,
+        "created_at": "2025-07-27T01:44:35.021809",
+        "completed_at": null
+      }
+    ]
+  },
+  {
+    "workflow_id": "assessment_workflow_20250727_014435",
+    "status": "failed",
+    "execution_time": 9.3e-05,
+    "final_output": null,
+    "tasks": [
+      {
+        "id": "quiz_creation",
+        "type": "education",
+        "agent": "assessment",
+        "input_data": {
+          "subject": "Science",
+          "topic": "Solar System",
+          "grade": "6",
+          "language": "english",
+          "assessment_type": "quiz"
+        },
+        "dependencies": [],
+        "status": "failed",
+        "result": null,
+        "error": "1 validation error for AssessmentRequest\nquestionCount\n  Field required [type=missing, input_value={'subject': 'Science', 't...ssessment_type': 'quiz'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "created_at": "2025-07-27T01:44:35.021958",
+        "completed_at": "2025-07-27T01:44:35.022007"
+      },
+      {
+        "id": "supporting_materials",
+        "type": "education",
+        "agent": "teaching_aids",
+        "input_data": {
+          "subject": "Science",
+          "topic": "Solar System",
+          "grade": "6",
+          "language": "english",
+          "aid_type": "flashcard"
+        },
+        "dependencies": [
+          "quiz_creation"
+        ],
+        "status": "pending",
+        "result": null,
+        "error": null,
+        "created_at": "2025-07-27T01:44:35.021961",
+        "completed_at": null
+      }
+    ]
+  }
+]
