@@ -16,7 +16,7 @@ import {
   type TranslationRequest,
   type StoryRequest
 } from "./services/openai";
-import { geminiBridge } from "./services/gemini-bridge";
+import { geminiService } from "./services/gemini-service";
 import { 
   loginSchema, 
   insertActivitySchema, 
@@ -270,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requestData = requestSchema.parse(req.body);
       console.log("Teaching Aid Request:", requestData);
       
-      const result = await geminiBridge.generateTeachingAid(requestData);
+      const result = await geminiService.createTeachingAid(requestData);
       console.log("Teaching Aid Result:", result);
       
       // Log activity
@@ -301,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const requestData = requestSchema.parse(req.body);
-      const result = await geminiBridge.generateLessonPlan(requestData);
+      const result = await geminiService.createLessonPlan(requestData);
       
       // Log activity
       await storage.createActivity({
@@ -329,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const requestData = requestSchema.parse(req.body);
-      const result = await geminiBridge.generateAssessment(requestData);
+      const result = await geminiService.createAssessment(requestData);
       
       // Log activity
       await storage.createActivity({
@@ -355,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const requestData = requestSchema.parse(req.body);
-      const result = await geminiBridge.translateContent(requestData);
+      const result = await geminiService.translateText(requestData);
       
       // Log activity
       await storage.createActivity({
@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const requestData = requestSchema.parse(req.body);
-      const result = await geminiBridge.generateStory(requestData);
+      const result = await geminiService.createStory(requestData);
       
       // Log activity
       await storage.createActivity({

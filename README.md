@@ -43,7 +43,7 @@ AI Saathi is a comprehensive educational platform designed specifically for Indi
 - **Node.js** with Express.js
 - **PostgreSQL** with Drizzle ORM
 - **Neon Database** (Serverless PostgreSQL)
-- **Google Gemini API** integration via Python FastAPI service
+- **Google Gemini API** integration via Node.js service
 - **Session-based authentication**
 
 ### Database Schema
